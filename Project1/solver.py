@@ -102,39 +102,43 @@ def solve(print_values: bool = False):
             for a in u:
                 print(f"{a.name}: {a.value()}")
 
-    criterias = []
+    criteria = []
     for u in u_all:
         arr = np.array([])
         for a, b in zip(u, u[1:]):
             a_start, a_value = int(a.name.split("_")[1]), a.value()
             b_start, b_value = int(b.name.split("_")[1]), b.value()
             arr = np.concatenate((arr, np.linspace(a_value, b_value, (b_start - a_start))))
-        criterias.append(arr)
+        criteria.append(arr)
     
-    return criterias
+    return criteria
 
 
-def create_ranking(matrix, criterias, min_values):
+def create_ranking(matrix, criteria, min_values):
     ranking = {}
     for row in matrix:
+        print(row)
         id = int(row[0]) - 1
+        print(id)
         score = 0
-        for col in range(len(criterias)):
+        for col in range(len(criteria)):
             crit_id = int(matrix[id][col+1] * 100) - 1
-            score += matrix[id][col+1] * criterias[col][crit_id - min_values[col]]
+            #score += matrix[id][col+1] * criteria[col][crit_id - min_values[col]]
+            print(criteria[col][crit_id - min_values[col]])
+            score += criteria[col][crit_id - min_values[col]]
         ranking[id+1] = score
 
     ranking = sorted(ranking.items(), key=lambda x:x[1], reverse=True)
     return ranking
 
 
-def plot_criterias(criterias, min_values):
+def plot_criteria(criteria, min_values):
     fig, axes = plt.subplots(2, 2, figsize=(10, 10))
     for i in range(2):
         for j in range(2):
             id = i*2+j
-            axes[i][j].plot(np.linspace(min_values[id] / 100, 1.0, 100 - min_values[id]), criterias[id])
-            axes[i][j].set_title(f"Criteria {id+1}")
+            axes[i][j].plot(np.linspace(min_values[id] / 100, 1.0, 100 - min_values[id]), criteria[id])
+            axes[i][j].set_title(f"Criterion {id+1}")
     plt.show()
 
 
@@ -147,9 +151,7 @@ if __name__ == "__main__":
         for line in lines[1:]:
             matrix.append(list(map(float, line[:-2].split(","))))
     
-    criteria = solve()
-    for criterion in criteria:
-        print(criterion)
+    criteria = solve(True)
 
     min_values = [100 - len(criteria) for criteria in criteria]
 
@@ -158,4 +160,4 @@ if __name__ == "__main__":
     for i, row in enumerate(ranking):
         print(f"{i+1}: {row}")
 
-    plot_criterias(criteria, min_values)
+    plot_criteria(criteria, min_values)
