@@ -34,11 +34,11 @@ def solve(print_values: bool = False):
     u3_56 = LpVariable(name='u3_56' , lowBound=0, cat='Continuous')
     u4_61 = LpVariable(name='u4_61' , lowBound=0, cat='Continuous')
 
-    # example 1
-    u1_60 = LpVariable(name='u1_60' , lowBound=0, cat='Continuous')
-    u2_93 = LpVariable(name='u2_93' , lowBound=0, cat='Continuous')
-    # u3_00 = LpVariable(name='u3_00' , lowBound=0, cat='Continuous')
-    u4_73 = LpVariable(name='u4_73' , lowBound=0, cat='Continuous')
+    # example 2
+    u1_66 = LpVariable(name='u1_66' , lowBound=0, cat='Continuous')
+    u2_55 = LpVariable(name='u2_55' , lowBound=0, cat='Continuous')
+    u3_45 = LpVariable(name='u3_45' , lowBound=0, cat='Continuous')
+    u4_49 = LpVariable(name='u4_49' , lowBound=0, cat='Continuous')
 
     # example 25
     u1_34 = LpVariable(name='u1_34' , lowBound=0, cat='Continuous')
@@ -46,11 +46,11 @@ def solve(print_values: bool = False):
     # u3_100 = LpVariable(name='u3_100' , lowBound=0, cat='Continuous')
     # u4_100 = LpVariable(name='u4_100' , lowBound=0, cat='Continuous')
 
-    # example 21
-    u1_83 = LpVariable(name='u1_83' , lowBound=0, cat='Continuous')
-    u2_25 = LpVariable(name='u2_25' , lowBound=0, cat='Continuous')
-    u3_80 = LpVariable(name='u3_80' , lowBound=0, cat='Continuous')
-    u4_65 = LpVariable(name='u4_65' , lowBound=0, cat='Continuous')
+    # example 27
+    u1_80 = LpVariable(name='u1_80' , lowBound=0, cat='Continuous')
+    u2_06 = LpVariable(name='u2_06' , lowBound=0, cat='Continuous')
+    # u3_100 = LpVariable(name='u3_100' , lowBound=0, cat='Continuous')
+    u4_67 = LpVariable(name='u4_67' , lowBound=0, cat='Continuous')
 
     # example 15
     u1_87 = LpVariable(name='u1_87' , lowBound=0, cat='Continuous')
@@ -58,35 +58,30 @@ def solve(print_values: bool = False):
     # u3_100 = LpVariable(name='u3_100' , lowBound=0, cat='Continuous')
     # u4_61 = LpVariable(name='u4_61' , lowBound=0, cat='Continuous')
 
-    u1_all = [u1_32, u1_34, u1_60, u1_61, u1_69, u1_83, u1_87, u1_100]
-    u2_all = [u2_03, u2_25, u2_49, u2_54, u2_93, u2_100]
-    u3_all = [u3_00, u3_38, u3_56, u3_80, u3_100]
-    u4_all = [u4_49, u4_61, u4_65, u4_73, u4_100]
+    u1_all = [u1_32, u1_34, u1_61, u1_66, u1_69, u1_80, u1_87, u1_100]
+    u2_all = [u2_03, u2_06, u2_49, u2_54, u2_55, u2_100]
+    u3_all = [u3_00, u3_38, u3_45, u3_56, u3_100]
+    u4_all = [u4_49, u4_61, u4_67, u4_100]
     u_all = [u1_all, u2_all, u3_all, u4_all]
 
-    # reference ranking
-    model += (u1_61 + u2_54 + u3_38 + u4_49 >= u1_69 + u2_49 + u3_56 + u4_61 + epsilon, "#11_over_14")
-    model += (u1_69 + u2_49 + u3_56 + u4_61 == u1_60 + u2_93 + u3_00 + u4_73, "#14_equal_1")
-    model += (u1_60 + u2_93 + u3_00 + u4_73 >= u1_34 + u2_100 + u3_100 + u4_100 + epsilon, "#1_over_25")
-    model += (u1_34 + u2_100 + u3_100 + u4_100 >= u1_83 + u2_25 + u3_80 + u4_65 + epsilon, "#25_over_21")
-    model += (u1_83 + u2_25 + u3_80 + u4_65 == u1_87 + u2_03 + u3_100 + u4_61, "#21_equal_15")
+    # reference rankingProject1/solver.py Project1/Nuclear waste management.csv
+    model += (u1_61 + u2_54 + u3_38 + u4_49 >= u1_66 + u2_55 + u3_45 + u4_49 + epsilon, "#11_over_2")
+    model += (u1_66 + u2_55 + u3_45 + u4_49 >= u1_69 + u2_49 + u3_56 + u4_61 + epsilon, "#2_over_14")
+    model += (u1_69 + u2_49 + u3_56 + u4_61 == u1_34 + u2_100 + u3_100 + u4_100, "#14_equal_25")
+    model += (u1_34 + u2_100 + u3_100 + u4_100 >= u1_80 + u2_06 + u3_100 + u4_67 + epsilon, "#25_over_27")
+    model += (u1_80 + u2_06 + u3_100 + u4_67 == u1_87 + u2_03 + u3_100 + u4_61, "#27_equal_15")
 
     # normalization
-    model += (u1_32 + u2_100 + u3_100 + u4_49 == 1, "#normalization")
+    model += (u1_32 + u2_03 + u3_00 + u4_49 == 1, "#normalization")
     model += (u1_100 == 0, "#u1_min")
-    model += (u2_03 == 0, "#u2_min")
-    model += (u3_00 == 0, "#u3_min")
-    model += (u4_100 == 0, "u4_min")
+    model += (u2_100 == 0, "#u2_min")
+    model += (u3_100 == 0, "#u3_min")
+    model += (u4_100 == 0, "#u4_min")
 
     # monotonicity: cost criterias
-    for u in [u1_all, u4_all]:
+    for u in u_all:
         for a, b in zip(u, u[1:]):
             model += a >= b
-    
-    # monotonicity: gain criterias
-    for u in [u2_all, u3_all]:
-        for a, b in zip(u, u[1:]):
-            model += a <= b
 
     # non-negativity
     for u in u_all:
@@ -152,13 +147,15 @@ if __name__ == "__main__":
         for line in lines[1:]:
             matrix.append(list(map(float, line[:-2].split(","))))
     
-    criterias = solve()
+    criteria = solve()
+    for criterion in criteria:
+        print(criterion)
 
-    min_values = [100 - len(criteria) for criteria in criterias]
+    min_values = [100 - len(criteria) for criteria in criteria]
 
-    ranking = create_ranking(matrix, criterias, min_values)
+    ranking = create_ranking(matrix, criteria, min_values)
 
     for i, row in enumerate(ranking):
         print(f"{i+1}: {row}")
 
-    plot_criterias(criterias, min_values)
+    plot_criterias(criteria, min_values)
