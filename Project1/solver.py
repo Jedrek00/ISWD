@@ -103,29 +103,32 @@ def solve(print_values: bool = False):
                 print(f"{a.name}: {a.value()}")
 
     criteria = []
+    min_values = []
     for u in u_all:
         arr = np.array([])
+        min_values.append(int(u[0].name.split("_")[1]))
         for a, b in zip(u, u[1:]):
             a_start, a_value = int(a.name.split("_")[1]), a.value()
             b_start, b_value = int(b.name.split("_")[1]), b.value()
             arr = np.concatenate((arr, np.linspace(a_value, b_value, (b_start - a_start))))
         criteria.append(arr)
-    
-    return criteria
+    return criteria, min_values
 
 
 def create_ranking(matrix, criteria, min_values):
     ranking = {}
     for row in matrix:
-        print(row)
         id = int(row[0]) - 1
-        print(id)
         score = 0
+        print(row)
         for col in range(len(criteria)):
-            crit_id = int(matrix[id][col+1] * 100) - 1
+            crit_id = int(matrix[id][col+1] * 100)
+            if crit_id - min_values[col] < len(criteria[col]): 
+                idx = crit_id - min_values[col]
+            else:
+                idx = crit_id - min_values[col] - 1
             #score += matrix[id][col+1] * criteria[col][crit_id - min_values[col]]
-            print(criteria[col][crit_id - min_values[col]])
-            score += criteria[col][crit_id - min_values[col]]
+            score += criteria[col][idx]
         ranking[id+1] = score
 
     ranking = sorted(ranking.items(), key=lambda x:x[1], reverse=True)
@@ -149,11 +152,9 @@ if __name__ == "__main__":
     with open(path, "r") as f:
         lines = f.readlines()
         for line in lines[1:]:
-            matrix.append(list(map(float, line[:-2].split(","))))
+            matrix.append(list(map(float, line[:-1].split(","))))
     
-    criteria = solve(True)
-
-    min_values = [100 - len(criteria) for criteria in criteria]
+    criteria, min_values = solve()
 
     ranking = create_ranking(matrix, criteria, min_values)
 
