@@ -209,6 +209,71 @@ def solve_gms(crit, matrix, pair):
 
     return model.objective.value()
 
+def solve_function(crit, matrix, outcome):
+    # Create instance of problem
+    model = LpProblem(name="nuclear_waste_management", sense=LpMaximize)
+
+    # Create variables for each feature
+    epsilon = LpVariable(name="eps", cat="Continuous")
+    delta = LpVariable(name="delta", cat="Continous")
+    Maxi = LpVariable(name="Maxi", cat="Continous")
+
+    u1_all = [y for _, y in sorted(crit[0].items())]
+    u2_all = [y for _, y in sorted(crit[1].items())]
+    u3_all = [y for _, y in sorted(crit[2].items())]
+    u4_all = [y for _, y in sorted(crit[3].items())]
+    u_all = [u1_all, u2_all, u3_all, u4_all]
+
+    # reference rankingProject1/solver.py Project1/Nuclear waste management.csv
+    model += add_to_model_greater(crit, matrix, (10, 1), epsilon)
+    model += add_to_model_greater(crit, matrix, (1, 13), epsilon)
+    model += add_to_model_equal(crit, matrix, (13, 24))
+    model += add_to_model_greater(crit, matrix, (24, 26), epsilon)
+    model += add_to_model_equal(crit, matrix, (26, 14))
+
+    # normalization
+    model += (u1_all[0] + u2_all[0] + u3_all[0] + u4_all[0] == 1, "#normalization")
+    model += (u1_all[-1] == 0, "#u1_min")
+    model += (u2_all[-1] == 0, "#u2_min")
+    model += (u3_all[-1] == 0, "#u3_min")
+    model += (u4_all[-1] == 0, "#u4_min")
+
+    # monotonicity: cost criterias
+    for u in u_all:
+        for a, b in zip(u, u[1:]):
+            model += a >= b
+
+    # non-negativity
+    for u in u_all:
+        for a in u:
+            model += a >= 0
+
+    for x in range(outcome.shape[0]):
+        for y in range(outcome.shape[1]):
+            if outcome[x, y] >= 0 and outcome[y, x] < 0:
+                model += add_to_model_greater(crit, matrix, (x, y), epsilon)
+            elif outcome[x, y] <= 0 and outcome[y, x] <= 0:
+                model += add_to_model_greater(crit, matrix, (x, y), delta)
+                model += add_to_model_greater(crit, matrix, (y, x), delta)
+
+    # maximize
+    model += Maxi >= epsilon - delta
+    obj_func = epsilon #in theory better Maxi, but delta is always zero
+    model += obj_func
+
+    # run solver
+    status = model.solve()
+
+    result = {}
+
+    for x in range(len(matrix)):
+        helper = 0
+        for var in range(1, 5):
+            helper += crit[var - 1][matrix[x][var]].value()
+        result[x+1] = helper
+
+    return result, u_all
+
 
 def create_ranking(matrix, criteria, min_values):
     ranking = {}
@@ -275,12 +340,14 @@ if __name__ == "__main__":
         for y in range(outcome.shape[1]):
             if x == y:
                 continue
-            print((x + 1, y + 1), end=": ")
             if outcome[x, y] >= 0 and outcome[y, x] <= 0:
+                print((x + 1, y + 1), end=": ")
                 print("konieczne")
-            elif outcome[x, y] >= 0:
-                print("możliwe")
-
+            #elif outcome[x, y] >= 0:
+            #    print((x + 1, y + 1), end=": ")
+            #    print("możliwe")
+    ranking, u_all = solve_function(crit, matrix, outcome)
+    print(dict(sorted(ranking.items(), key=lambda item: item[1])))
     
     # for var in range(1, len(line)):
     #   print(crit[var - 1][line[var]])
