@@ -348,6 +348,15 @@ if __name__ == "__main__":
             #    print("możliwe")
     ranking, u_all = solve_function(crit, matrix, outcome)
     print(dict(sorted(ranking.items(), key=lambda item: item[1])))
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+    for i in range(2):
+        for j in range(2):
+            id = i * 2 + j
+            axes[i][j].plot([float(x.name.split("_")[2])/100 for x in u_all[id]], [y.value() for y in u_all[id]]
+            )
+            axes[i][j].set_title(f"Kryterium {id+1}")
+    plt.show()
     
     # for var in range(1, len(line)):
     #   print(crit[var - 1][line[var]])
