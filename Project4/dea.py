@@ -1,10 +1,11 @@
 from pulp import *
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 INPUT_DATA_PATH = "Project4/data/inputs.csv"
 OUTPUT_DATA_PATH = "Project4/data/outputs.csv"
+SAMPLES_PATH = "Project4/data/samples_homework.csv"
+BINS = 5
 
 
 def solve_CCR(inputs, outputs, id, super_efficiency=False) -> LpProblem:
@@ -38,9 +39,10 @@ def solve_CCR(inputs, outputs, id, super_efficiency=False) -> LpProblem:
     model += lpSum([outputs_weights[i] * outputs[id][i] for i in range(num_outputs)])
 
     # Rozwiązanie problemu optymalizacyjnego
-    model.solve()
+    model.solve(PULP_CBC_CMD(msg=0))
 
     return model
+
 
 def calculate_efficiency(inputs, outputs, super_efficiency=False):
     efficiencies = []
@@ -53,7 +55,6 @@ def calculate_efficiency(inputs, outputs, super_efficiency=False):
 
 def cross_efficiency(inputs, outputs, cities):
     num_examples = inputs.shape[0]
-    num_inputs = inputs.shape[1]
     num_outputs = outputs.shape[1]
 
     cross_efficiencies = pd.DataFrame(index=cities, columns=cities)
@@ -70,18 +71,59 @@ def cross_efficiency(inputs, outputs, cities):
     return cross_efficiencies.T
 
 
+def distribution_of_efficiencies(inputs, outputs, samples, bins):
+    num_examples = inputs.shape[0]
+    num_inputs = inputs.shape[1]
+    num_samples = samples.shape[0]
+
+    effs = np.zeros((num_examples, num_samples))
+    boundries = np.linspace(0, 1, bins+1)
+
+    for i in range(num_examples):
+        for j, sample in enumerate(samples):
+            sample_inputs, sample_outputs = sample[:num_inputs], sample[num_inputs:]
+            value =  np.sum(inputs[i] * sample_inputs) / np.sum(outputs[i] * sample_outputs)
+            effs[i, j] = value
+
+    effs /= np.max(effs, axis=0)
+    mean_values = np.mean(effs, axis=1)
+
+    descrete = np.digitize(effs, boundries, True)
+
+    number_of_occurence = []
+    for row in descrete:
+        values, counts = np.unique(row, return_counts=True)
+        a = [0] * bins
+        for i, value in enumerate(values):
+            a[value-1] = counts[i]
+            number_of_occurence.append(a)
+    number_of_occurence = np.array(number_of_occurence, dtype=np.float32)
+    number_of_occurence /= num_samples
+    result = np.concatenate([number_of_occurence, np.expand_dims(mean_values, axis=1)], axis=1)
+    
+    return result
+
+
 def main():
+    # read data
     inputs = pd.read_csv(INPUT_DATA_PATH, delimiter=";", index_col=0)
     outputs = pd.read_csv(OUTPUT_DATA_PATH, delimiter=";", index_col=0)
+    samples = pd.read_csv(SAMPLES_PATH, delimiter=";", index_col=0)
+
     cities = inputs.index.to_list()
 
+    # transform to numpy arrays
     inputs_np = inputs.to_numpy()
     outputs_np = outputs.to_numpy()
+    samples_np = samples.to_numpy()
 
+    # calculate different types of efficiencies
     efficiencies = calculate_efficiency(inputs_np, outputs_np)
     super_efficiencies = calculate_efficiency(inputs_np, outputs_np, super_efficiency=True)
     cross_efficiencies = cross_efficiency(inputs_np, outputs_np, cities)
+    distribution = distribution_of_efficiencies(inputs_np, outputs_np, samples_np, BINS)
     
+    # display results
     print("Efficiencies")
     for city, e in zip(cities, efficiencies):
         print(f"{city}: {e}")
@@ -93,8 +135,9 @@ def main():
     print("Cross Efficiencies")
     print(cross_efficiencies)
 
+    print("Distribution Of Efficiencies")
+    print(distribution)
+
     
-
-
 if __name__ == "__main__":
     main()
