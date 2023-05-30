@@ -82,7 +82,7 @@ def distribution_of_efficiencies(inputs, outputs, samples, bins):
     for i in range(num_examples):
         for j, sample in enumerate(samples):
             sample_inputs, sample_outputs = sample[:num_inputs], sample[num_inputs:]
-            value =  np.sum(inputs[i] * sample_inputs) / np.sum(outputs[i] * sample_outputs)
+            value = np.sum(outputs[i] * sample_outputs) / np.sum(inputs[i] * sample_inputs)
             effs[i, j] = value
 
     effs /= np.max(effs, axis=0)
@@ -93,15 +93,21 @@ def distribution_of_efficiencies(inputs, outputs, samples, bins):
     number_of_occurence = []
     for row in descrete:
         values, counts = np.unique(row, return_counts=True)
-        a = [0] * bins
+        occurences = [0] * bins
         for i, value in enumerate(values):
-            a[value-1] = counts[i]
-            number_of_occurence.append(a)
+            occurences[value-1] = counts[i]
+        number_of_occurence.append(occurences)
     number_of_occurence = np.array(number_of_occurence, dtype=np.float32)
     number_of_occurence /= num_samples
     result = np.concatenate([number_of_occurence, np.expand_dims(mean_values, axis=1)], axis=1)
     
     return result
+
+def display_ranking(values: list, cities:list):
+    sorted_values, sorted_cities = zip(*sorted(zip(values, cities), reverse=True))
+    for i,  (value, city) in enumerate(zip(sorted_values, sorted_cities)):
+        print(f"{i+1}. {city}: {value:.3f}")
+
 
 
 def main():
@@ -136,7 +142,15 @@ def main():
     print(cross_efficiencies)
 
     print("Distribution Of Efficiencies")
-    print(distribution)
+    print(pd.DataFrame(distribution, index=cities))
+
+    print("==RANKINGS==")
+    print("Super-Efficiencies")
+    display_ranking(super_efficiencies, cities)
+    print("Mean values from Cross Efficiencies")
+    display_ranking(cross_efficiencies['CRE_k'].to_list(), cities)
+    print("Expected values of Efficiencies")
+    display_ranking(list(distribution[:, BINS]), cities)
 
     
 if __name__ == "__main__":
