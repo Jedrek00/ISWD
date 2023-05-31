@@ -13,10 +13,10 @@ def solve_CCR(inputs, outputs, id, super_efficiency=False) -> LpProblem:
     num_inputs = inputs.shape[1]
     num_outputs = outputs.shape[1]
 
-    # Tworzenie problemu optymalizacyjnego
+    # Create problem
     model = LpProblem("EfficiencyCalculation", LpMaximize)
 
-    # Tworzenie zmiennej decyzyjnej dla każdego wejścia oraz wyjścia
+    # Create variable for each input and output
     inputs_weights = [
         LpVariable(f"v_{i}", lowBound=0, cat="Continuous") for i in range(num_inputs)
     ]
@@ -24,7 +24,7 @@ def solve_CCR(inputs, outputs, id, super_efficiency=False) -> LpProblem:
         LpVariable(f"u_{i}", lowBound=0, cat="Continuous") for i in range(num_outputs)
     ]
 
-    # Dodanie ograniczeń
+    # Add Constraints
     model += lpSum([inputs_weights[i] * inputs[id][i] for i in range(num_inputs)]) == 1
 
     for i in range(num_examples):
@@ -35,31 +35,31 @@ def solve_CCR(inputs, outputs, id, super_efficiency=False) -> LpProblem:
             [outputs_weights[j] * outputs[i][j] for j in range(num_outputs)]
         ) <= lpSum([inputs_weights[j] * inputs[i][j] for j in range(num_inputs)])
 
-    # Tworzenie funkcji celu
+    # Add objective function
     model += lpSum([outputs_weights[i] * outputs[id][i] for i in range(num_outputs)])
 
-    # Rozwiązanie problemu optymalizacyjnego
+    # Solve linear problem
     model.solve(PULP_CBC_CMD(msg=0))
 
     return model
 
 
-def solve_HCU(inputs, outputs, id) -> LpProblem:
+def solve_dual(inputs, outputs, id) -> LpProblem:
     num_examples = inputs.shape[0]
     num_inputs = inputs.shape[1]
     num_outputs = outputs.shape[1]
 
-    # Tworzenie problemu optymalizacyjnego
+    # Create problem
     model = LpProblem("EfficiencyCalculation", LpMinimize)
 
-    # Tworzenie zmiennej decyzyjnej dla każdego wejścia oraz wyjścia
+    # Create variable for each input and output
     lambdas = [
         LpVariable(f"l_{i}", lowBound=0, cat="Continuous") for i in range(num_examples)
     ]
 
     theta = LpVariable(f"t", lowBound=0, cat="Continuous")
 
-    # Dodanie ograniczeń
+    # Add Constraints
     for i in range(num_inputs):
         model += lpSum(
             [lambdas[j] * inputs[j][i] for j in range(num_examples)]
@@ -70,22 +70,22 @@ def solve_HCU(inputs, outputs, id) -> LpProblem:
             [lambdas[j] * outputs[j][i] for j in range(num_examples)]
         ) >= outputs[id][i]
 
-    # Tworzenie funkcji celu
+    # Add objective function
     model += theta
 
-    # Rozwiązanie problemu optymalizacyjnego
+    # Solve linear problem
     model.solve(PULP_CBC_CMD(msg=0))
 
     return model
 
 
-def calculate_hcu(inputs, outputs):
+def calculate_hcu(inputs, outputs) -> pd.DataFrame:
     num_examples = inputs.shape[0]
     num_inputs = inputs.shape[1]
     all_hcu_inputs = []
     all_differences = []
     for i in range(num_examples):
-        model = solve_HCU(inputs, outputs, i)
+        model = solve_dual(inputs, outputs, i)
         params = [p.value() for p in model.variables()[:-1]]
         # params are in lexical order, so l_10 was after l_0 and l_1
         params[2:] = params[3:] + [params[2]]
@@ -105,10 +105,10 @@ def calculate_hcu(inputs, outputs):
     all_hcu_inputs = pd.DataFrame(all_hcu_inputs)
     all_differences = pd.DataFrame(all_differences)
 
-    print(pd.concat([all_hcu_inputs, all_differences], axis=1))
+    return pd.concat([all_hcu_inputs, all_differences], axis=1)
 
 
-def calculate_efficiency(inputs, outputs, super_efficiency=False):
+def calculate_efficiency(inputs, outputs, super_efficiency=False) -> list:
     efficiencies = []
     for i in range(inputs.shape[0]):
         model = solve_CCR(inputs, outputs, i, super_efficiency)
@@ -117,7 +117,7 @@ def calculate_efficiency(inputs, outputs, super_efficiency=False):
     return efficiencies
 
 
-def cross_efficiency(inputs, outputs, cities):
+def cross_efficiency(inputs, outputs, cities) -> pd.DataFrame:
     num_examples = inputs.shape[0]
     num_outputs = outputs.shape[1]
 
@@ -187,36 +187,39 @@ def main():
     outputs_np = outputs.to_numpy()
     samples_np = samples.to_numpy()
 
-    calculate_hcu(inputs_np, outputs_np)
-
     # calculate different types of efficiencies
     efficiencies = calculate_efficiency(inputs_np, outputs_np)
     super_efficiencies = calculate_efficiency(inputs_np, outputs_np, super_efficiency=True)
     cross_efficiencies = cross_efficiency(inputs_np, outputs_np, cities)
     distribution = distribution_of_efficiencies(inputs_np, outputs_np, samples_np, BINS)
+    hcus = calculate_hcu(inputs_np, outputs_np)
+    hcus.index = cities
     
     # display results
-    # print("Efficiencies")
-    # for city, e in zip(cities, efficiencies):
-    #     print(f"{city}: {e}")
+    print("Efficiencies")
+    for city, e in zip(cities, efficiencies):
+        print(f"{city}: {e}")
 
-    # print("Super-Efficiencies")
-    # for city, e in zip(cities, super_efficiencies):
-    #     print(f"{city}: {e}")
+    print("Super-Efficiencies")
+    for city, e in zip(cities, super_efficiencies):
+        print(f"{city}: {e}")
 
-    # print("Cross Efficiencies")
-    # print(cross_efficiencies)
+    print("Cross Efficiencies")
+    print(cross_efficiencies)
 
-    # print("Distribution Of Efficiencies")
-    # print(pd.DataFrame(distribution, index=cities))
+    print("Distribution Of Efficiencies")
+    print(pd.DataFrame(distribution, index=cities))
 
-    # print("==RANKINGS==")
-    # print("Super-Efficiencies")
-    # display_ranking(super_efficiencies, cities)
-    # print("Mean values from Cross Efficiencies")
-    # display_ranking(cross_efficiencies['CRE_k'].to_list(), cities)
-    # print("Expected values of Efficiencies")
-    # display_ranking(list(distribution[:, BINS]), cities)
+    print("Hypothetical Comparison Units")
+    print(hcus)
+
+    print("==RANKINGS==")
+    print("Super-Efficiencies")
+    display_ranking(super_efficiencies, cities)
+    print("Mean values from Cross Efficiencies")
+    display_ranking(cross_efficiencies['CRE_k'].to_list(), cities)
+    print("Expected values of Efficiencies")
+    display_ranking(list(distribution[:, BINS]), cities)
 
     
 if __name__ == "__main__":
